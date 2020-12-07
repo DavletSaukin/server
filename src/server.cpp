@@ -21,14 +21,14 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <netdb.h>
-
+#include "userData.h"
 
 int main()
 {
     int sock, listener;
     struct sockaddr_in addr;
-    char buf[1024];
-    int bytes_read;
+    char loginBuf[userData::maxLoginSize];
+    char passwordBuf[userData::maxPasswordSize];
 
     listener = socket(AF_INET, SOCK_STREAM, 0);
     if(listener < 0)
@@ -55,11 +55,39 @@ int main()
         exit(3);
     }
 
-    bytes_read = recv(sock, buf, 1024, 0);
-    send(sock, buf, bytes_read, 0);
+    //acept login
+    auto readedBytes = recv(sock, loginBuf, userData::maxLoginSize, 0);
+    std::string login(loginBuf);
+
+    auto sendedBytes = send(sock, login.c_str(), readedBytes, 0);
+
+    std::cout << "sendedBytes: " << sendedBytes << std::endl;
+    std::cout << "readedBytes: " << readedBytes << std::endl;
+
+    //acept password
+    readedBytes = recv(sock, passwordBuf, userData::maxPasswordSize, 0);
+    std::string password(passwordBuf);
+
+    sendedBytes = send(sock, password.c_str(), readedBytes, 0);
+
+    std::cout << "sendedBytes: " << sendedBytes << std::endl;
+    std::cout << "readedBytes: " << readedBytes << std::endl;
+
+
 
     close(sock);
+    close(listener);
 
-    std::cout <<"server: " << buf <<std::endl;
+    std::cout <<"server: " << login <<std::endl;
+    std::cout <<"server: " << password <<std::endl;
+
+    userData user(login, password);
+    bool isWrited = user.writeInFile();
+    if(isWrited)
+    {
+    	std::cout << "WRITED" << std::endl;
+    }
+
+
     return 0;
 }
