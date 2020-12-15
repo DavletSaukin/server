@@ -10,25 +10,37 @@
 #include <cstddef>
 #include <iostream>
 #include <cstdio>
-#include <cerrno>
-#include <cstdlib>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <sys/types.h>
-#include <arpa/inet.h>
 
 #include <unistd.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include "userData.h"
+#include "serverHelper.h"
+
+#include <thread>
+#include <memory>
+#include <forward_list>
+#include <mutex>
+#include <chrono>
+
+std::mutex mutx;
+
+/*void func(int i)
+{
+	{
+       std::lock_guard<std::mutex> guard(mutx);
+       std::cout << "FUNC starts\t" << i << '\t' << std::this_thread::get_id() << std::endl;
+	};
+	{
+		std::lock_guard<std::mutex> guard(mutx);
+		std::cout << "FUNC ends\t" << i << '\t' << std::this_thread::get_id()  << std::endl;
+	};
+}*/
 
 int main()
 {
     int sock, listener;
-    struct sockaddr_in addr;
-    char loginBuf[userData::maxLoginSize];
-    char passwordBuf[userData::maxPasswordSize];
+    auto addrPtr = std::make_shared<struct sockaddr_in>();
 
     listener = socket(AF_INET, SOCK_STREAM, 0);
     if(listener < 0)
@@ -37,57 +49,41 @@ int main()
         exit(1);
     }
 
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(3425);
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    if(bind(listener, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+    if(binder(listener, addrPtr) < 0)
     {
         perror("bind");
         exit(2);
     }
+    listen(listener, 5);
 
-    listen(listener, 1);
 
-    sock = accept(listener, NULL, NULL);
-    if(sock < 0)
+    //The forward list stored thread-objects
+    std::forward_list<std::unique_ptr<std::thread>> threadPtrs;
+
+
+    int i = 0;
+    while(i < 5)
     {
-        perror("accept");
-        exit(3);
+    	std::cout << "ACCEPT starts" << std::endl;
+    	sock = accept(listener, NULL, NULL);
+    	if(sock < 0)
+    	{
+    	    perror("accept");
+    	    exit(3);
+    	}
+    	std::cout << "ACCEPT ends" << std::endl;
+
+    	threadPtrs.push_front(std::make_unique<std::thread>(clientsServing, sock));
+    	i++;
     }
 
-    //acept login
-    auto readedBytes = recv(sock, loginBuf, userData::maxLoginSize, 0);
-    std::string login(loginBuf);
-
-    auto sendedBytes = send(sock, login.c_str(), readedBytes, 0);
-
-    std::cout << "sendedBytes: " << sendedBytes << std::endl;
-    std::cout << "readedBytes: " << readedBytes << std::endl;
-
-    //acept password
-    readedBytes = recv(sock, passwordBuf, userData::maxPasswordSize, 0);
-    std::string password(passwordBuf);
-
-    sendedBytes = send(sock, password.c_str(), readedBytes, 0);
-
-    std::cout << "sendedBytes: " << sendedBytes << std::endl;
-    std::cout << "readedBytes: " << readedBytes << std::endl;
-
-
-
-    close(sock);
     close(listener);
 
-    std::cout <<"server: " << login <<std::endl;
-    std::cout <<"server: " << password <<std::endl;
-
-    userData user(login, password);
-    bool isWrited = user.writeInFile();
-    if(isWrited)
-    {
-    	std::cout << "WRITED" << std::endl;
-    }
-
+	for (auto& ptr: threadPtrs)
+	{
+		if(ptr->joinable())
+			ptr->join();
+	}
 
     return 0;
 }

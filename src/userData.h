@@ -10,13 +10,15 @@
 #include <string>
 #include <cstring>
 #include <fstream>
+#include <mutex>
 
 class userData {
 private:
 	std::string login;
 	std::string password;
 
-	bool isAlreadyExist();
+	static std::mutex mtx;
+
 
 public:
     const static int maxLoginSize     = 100;
@@ -30,5 +32,7 @@ public:
     bool writeInFile();
 
 };
+
+bool isAlreadyExist(std::string _login);
 
 #endif /* USERDATA_H_ */

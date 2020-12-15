@@ -7,52 +7,67 @@
 
 #include "userData.h"
 
+std::mutex userData::mtx;
+
 userData::userData(std::string _login, std::string _password)
                   : login(_login), password(_password)
 {}
 
 bool userData::writeInFile()
 {
-	if (isAlreadyExist())
+	if (isAlreadyExist(this->login))
 	{
 		return false;
 	}
 
-	std::ofstream fout("userdata.txt", std::ios::ate | std::ios::app);
-
-	fout << login.c_str() << '\t' << password.c_str() << '\n';
-
-	fout.close();
+	{
+		std::lock_guard<std::mutex> guard(mtx);
+		std::ofstream fout("userdata.txt", std::ios::ate | std::ios::app);
+	    fout << login.c_str() << '\t' << password.c_str() << '\n';
+	    fout.close();
+	}
 
 	return true;
 };
 
-bool userData::isAlreadyExist()
+
+//Returns true if _login is alredy used.
+bool isAlreadyExist(std::string _login)
 {
-	//char buff[24];
+	char* nameBuf     = new char[userData::maxLoginSize];
+	char* remainingBuf = new char[userData::maxPasswordSize];
 
-	char* nameBuf     = new char[maxLoginSize];
-	char* remainingBuf = new char[maxPasswordSize];
-
-	std::ifstream fin("userdata.txt");
-	std::streamsize nameLength = maxLoginSize;
-
-
-	while (1)
 	{
-		fin.getline(nameBuf, nameLength, '\t');
-		fin.getline(remainingBuf, nameLength, '\n');
+		std::lock_guard<std::mutex> guard(userData::mtx);
+		std::ifstream fin("userdata.txt");
+	    std::streamsize nameLength = userData::maxLoginSize;
 
-		if (strncmp(nameBuf, login.c_str(), (unsigned long int)login.size()) == 0)
-			return true;
-		if (fin.fail())
-		{
-			fin.close();
-			break;
-		}
-		//fin.seekg((int)fin.tellg() + 14);
+	    auto loginSize = _login.size();
+
+	    while (1)
+	    {
+	    	fin.getline(nameBuf, nameLength, '\t');
+	    	fin.getline(remainingBuf, nameLength, '\n');
+
+	    	if(loginSize == strlen(nameBuf))
+	    	{
+	    		if (strncmp(nameBuf, _login.c_str(), (unsigned long int)_login.size()) == 0)
+	    	    {
+	    	    	fin.close();
+	    	    	return true;
+	    	    }
+	    	}
+
+	    	if (fin.fail())
+	    	{
+	    		fin.close();
+	    		break;
+	    	}
+
+	    }
+
+	    fin.close();
 	}
 
-	fin.close();
     return false;
 }
