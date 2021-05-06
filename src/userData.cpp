@@ -2,7 +2,7 @@
  * userData.cpp
  *
  *  Created on: 6 дек. 2020 г.
- *      Author: davlet
+ *      Author: Davlet
  */
 
 #include "userData.h"
@@ -29,7 +29,6 @@ bool userData::writeInFile()
 
 	return true;
 };
-
 
 //Returns true if _login is alredy used.
 bool isAlreadyExist(std::string _login)
@@ -60,7 +59,63 @@ bool isAlreadyExist(std::string _login)
 
 	    	if (fin.fail())
 	    	{
-	    		fin.close();
+	    		break;
+	    	}
+
+	    }
+
+	    fin.close();
+	}
+
+    return false;
+}
+
+//Returns true if password is correct, false if otherwise.
+bool passwordCheck(std::string _login, std::string _password)
+{
+	char* nameBuf     = new char[userData::maxLoginSize];
+	char* passwordBuf = new char[userData::maxPasswordSize];
+
+	{
+		std::lock_guard<std::mutex> guard(userData::mtx);
+		std::ifstream fin("userdata.txt");
+	    std::streamsize nameLength = userData::maxLoginSize;
+
+	    auto loginSize    = _login.size();
+	    auto passwordSize = _password.size();
+
+	    while (1)
+	    {
+	    	fin.getline(nameBuf, nameLength, '\t');
+	    	fin.getline(passwordBuf, nameLength, '\n');
+
+	    	if(loginSize == strlen(nameBuf))
+	    	{
+	    		if (strncmp(nameBuf, _login.c_str(), (unsigned long int)_login.size()) == 0)
+	    	    {
+	    			if(passwordSize == strlen(passwordBuf))
+	    			{
+	    				if (strncmp(passwordBuf, _password.c_str(), (unsigned long int)_password.size()) == 0)
+	    			    {
+	    			    	fin.close();
+	    	    	        return true;
+	    			    }
+	    				else
+	    	            {
+	    	            	fin.close();
+	    	            	return false;
+	    	            }
+	    			}
+	    			else
+	    			{
+	    				fin.close();
+	    				return false;
+	    			}
+	    	    }
+	    	}
+
+	    	if (fin.fail())
+	    	{
 	    		break;
 	    	}
 

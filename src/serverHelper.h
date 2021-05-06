@@ -1,7 +1,7 @@
 /*
  * serverHelper.h
  *
- *      Author: davlet
+ *      Author: Davlet
  */
 
 #ifndef SERVERHELPER_H_
@@ -49,21 +49,36 @@ inline void clientsServing(int _sock)
 	    {
 	    	short int serverMsg = 401;
 	        send(_sock, &serverMsg, sizeof(short int), 0);
+	        close(_sock);
 	    	return;
 	    }
 	    else
 	    {
+	    	short int serverMsg = 200;
+	        send(_sock, &serverMsg, sizeof(short int), 0);
 	    	//acept password
 	    	char passwordBuf[userData::maxPasswordSize];
 	        readedBytes = recv(_sock, passwordBuf, userData::maxPasswordSize, 0);
 	        password.assign(passwordBuf, readedBytes);
 	    }
 
-	    //Create user's object
-	    userData user(login, password);
-
-		short int serverMsg = 200;
-	    send(_sock, &serverMsg, sizeof(short int), 0);
+	    if(passwordCheck(login, password))
+	    {
+	    	//Create user's object
+	        userData user(login, password);
+	        short int serverMsg = 200;
+	        send(_sock, &serverMsg, sizeof(short int), 0);
+	        close(_sock);
+	        return;
+	    }
+	    else
+	    {
+	    	//send message of error
+	    	short int serverMsg = 401;
+	        send(_sock, &serverMsg, sizeof(short int), 0);
+	        close(_sock);
+	        return;
+	    }
 	}
 	else if (clientReq == 1) // Sign Up
 	{
@@ -77,19 +92,19 @@ inline void clientsServing(int _sock)
 	    {
 	    	short int serverMsg = 401;
 	    	send(_sock, &serverMsg, sizeof(short int), 0);
+	    	close(_sock);
 	    	return;
-
-	    	//std::string msg("This login is used already");
-	    	//send(_sock, msg.c_str(), readedBytes, 0);
-	    	//return;
 	    }
 	    else
 	    {
+	    	short int serverMsg = 200;
+	    	send(_sock, &serverMsg, sizeof(short int), 0);
 	    	//acept password
 	        char passwordBuf[userData::maxPasswordSize];
 	        readedBytes = recv(_sock, passwordBuf, userData::maxPasswordSize, 0);
 	        password.assign(passwordBuf, readedBytes);
 	    }
+
 
 	    //Create user's object
 	    userData user(login, password);
@@ -99,16 +114,20 @@ inline void clientsServing(int _sock)
 	   	{
 	    	short int serverMsg = 401;
 	        send(_sock, &serverMsg, sizeof(short int), 0);
+	        close(_sock);
 	        return;
 	   	}
-
-	    short int serverMsg = 200;
-	    send(_sock, &serverMsg, sizeof(short int), 0);
+	    else
+	    {
+	    	short int serverMsg = 200;
+	        send(_sock, &serverMsg, sizeof(short int), 0);
+	        close(_sock);
+	        return;
+	    }
 	}
 
 	close(_sock);
 }
-
 
 
 #endif /* SERVERHELPER_H_ */

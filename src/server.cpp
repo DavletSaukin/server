@@ -1,14 +1,10 @@
 //============================================================================
 // Name        : server.cpp
 // Author      : Davlet
-// Version     :
-// Copyright   : Your copyright notice
-// Description : Hello World in C++, Ansi-style
 //============================================================================
 
 
 #include <cstddef>
-#include <iostream>
 #include <cstdio>
 
 #include <unistd.h>
@@ -24,18 +20,6 @@
 #include <chrono>
 
 std::mutex mutx;
-
-/*void func(int i)
-{
-	{
-       std::lock_guard<std::mutex> guard(mutx);
-       std::cout << "FUNC starts\t" << i << '\t' << std::this_thread::get_id() << std::endl;
-	};
-	{
-		std::lock_guard<std::mutex> guard(mutx);
-		std::cout << "FUNC ends\t" << i << '\t' << std::this_thread::get_id()  << std::endl;
-	};
-}*/
 
 int main()
 {
@@ -64,14 +48,12 @@ int main()
     int i = 0;
     while(i < 5)
     {
-    	std::cout << "ACCEPT starts" << std::endl;
     	sock = accept(listener, NULL, NULL);
     	if(sock < 0)
     	{
     	    perror("accept");
     	    exit(3);
     	}
-    	std::cout << "ACCEPT ends" << std::endl;
 
     	threadPtrs.push_front(std::make_unique<std::thread>(clientsServing, sock));
     	i++;

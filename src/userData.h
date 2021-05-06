@@ -1,7 +1,7 @@
 /*
  * userData.h
  *
- *      Author: davlet
+ *      Author: Davlet
  */
 
 #ifndef USERDATA_H_
@@ -12,13 +12,16 @@
 #include <fstream>
 #include <mutex>
 
+//preliminary declaration
+bool isAlreadyExist(std::string _login);
+bool passwordCheck(std::string _login, std::string _password);
+
 class userData {
 private:
 	std::string login;
 	std::string password;
 
 	static std::mutex mtx;
-
 
 public:
     const static int maxLoginSize     = 100;
@@ -30,9 +33,9 @@ public:
 	virtual ~userData() = default;
 
     bool writeInFile();
+    friend bool isAlreadyExist(std::string _login);
+    friend bool passwordCheck(std::string _login, std::string _password);
 
 };
-
-bool isAlreadyExist(std::string _login);
 
 #endif /* USERDATA_H_ */
